@@ -19,6 +19,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.FloatBuffer;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -55,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
     imageView.setImageBitmap(bitmap);
 
     // preparing input tensor
-    final Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(bitmap,
+    final Tensor inputTensor = bitmapToGrayFloat32Tensor(bitmap,
         TensorImageUtils.TORCHVISION_NORM_MEAN_RGB, TensorImageUtils.TORCHVISION_NORM_STD_RGB, MemoryFormat.CHANNELS_LAST);
 
     // running the model
@@ -105,4 +106,68 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
+
+  public static Tensor bitmapToGrayFloat32Tensor(
+          final Bitmap bitmap,
+          float[] normMeanRGB,
+          float[] normStdRGB,
+          MemoryFormat memoryFormat) {
+
+
+    final FloatBuffer floatBuffer = Tensor.allocateFloatBuffer(bitmap.getWidth() * bitmap.getHeight());
+    bitmapToFloatBuffer(
+            bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), normMeanRGB, normStdRGB, floatBuffer, 0, memoryFormat);
+    return Tensor.fromBlob(floatBuffer, new long[] {1, 1, bitmap.getHeight(), bitmap.getWidth()}, memoryFormat);
+  }
+
+  public static Tensor bitmapToGrayFloat32Tensor(
+          final Bitmap bitmap,
+          int x,
+          int y,
+          int width,
+          int height,
+          float[] normMeanRGB,
+          float[] normStdRGB,
+          MemoryFormat memoryFormat) {
+
+
+    final FloatBuffer floatBuffer = Tensor.allocateFloatBuffer(width * height);
+    bitmapToFloatBuffer(
+            bitmap, x, y, width, height, normMeanRGB, normStdRGB, floatBuffer, 0, memoryFormat);
+    return Tensor.fromBlob(floatBuffer, new long[] {1, 1, height, width}, memoryFormat);
+  }
+
+  public static void bitmapToFloatBuffer(
+          final Bitmap bitmap,
+          final int x,
+          final int y,
+          final int width,
+          final int height,
+          final float[] normMeanRGB,
+          final float[] normStdRGB,
+          final FloatBuffer outBuffer,
+          final int outBufferOffset,
+          final MemoryFormat memoryFormat) {
+
+    if (memoryFormat != MemoryFormat.CONTIGUOUS && memoryFormat != MemoryFormat.CHANNELS_LAST) {
+      throw new IllegalArgumentException("Unsupported memory format " + memoryFormat);
+    }
+
+    final int pixelsCount = height * width;
+    final int[] pixels = new int[pixelsCount];
+    bitmap.getPixels(pixels, 0, width, x, y, width, height);
+    if (MemoryFormat.CONTIGUOUS == memoryFormat) {
+      for (int i = 0; i < pixelsCount; i++) {
+        final int c = pixels[i];
+        float r = ((c >> 16) & 0xff) / 255.0f;
+        outBuffer.put(outBufferOffset + i, (r - normMeanRGB[0]) / normStdRGB[0]);
+      }
+    } else {
+      for (int i = 0; i < pixelsCount; i++) {
+        final int c = pixels[i];
+        float r = ((c >> 16) & 0xff) / 255.0f;
+        outBuffer.put(outBufferOffset + i + 0, (r - normMeanRGB[0]) / normStdRGB[0]);
+      }
+    }
+  }
 }
