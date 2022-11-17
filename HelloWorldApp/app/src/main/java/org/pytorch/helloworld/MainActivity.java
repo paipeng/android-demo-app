@@ -9,7 +9,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.pytorch.IValue;
-import org.pytorch.LiteModuleLoader;
 import org.pytorch.Module;
 import org.pytorch.Tensor;
 import org.pytorch.torchvision.TensorImageUtils;
@@ -35,11 +34,18 @@ public class MainActivity extends AppCompatActivity {
     try {
       // creating bitmap from packaged into app android asset 'image.jpg',
       // app/src/main/assets/image.jpg
-      bitmap = BitmapFactory.decodeStream(getAssets().open("image.jpg"));
+      bitmap = BitmapFactory.decodeStream(getAssets().open("board_2050_piece_1-0.bmp"));
       // loading serialized torchscript module from packaged into app android asset model.pt,
       // app/src/model/assets/model.pt
-      module = LiteModuleLoader.load(assetFilePath(this, "model.pt"));
+      //module = LiteModuleLoader.load(assetFilePath(this, "mobile_chess_model.ptl"));
+      final String moduleFileAbsoluteFilePath = new File(
+              assetFilePath(this, "mobile_chess_model.ptl")).getAbsolutePath();
+
+      module = Module.load(moduleFileAbsoluteFilePath);
     } catch (IOException e) {
+      Log.e("PytorchHelloWorld", "Error reading assets", e);
+      finish();
+    } catch (Exception e) {
       Log.e("PytorchHelloWorld", "Error reading assets", e);
       finish();
     }
@@ -68,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
       }
     }
 
-    String className = ImageNetClasses.IMAGENET_CLASSES[maxScoreIdx];
+    String className = ChessNetClasses.IMAGENET_CLASSES[maxScoreIdx];
 
     // showing className on UI
     TextView textView = findViewById(R.id.text);
@@ -98,4 +104,5 @@ public class MainActivity extends AppCompatActivity {
       return file.getAbsolutePath();
     }
   }
+
 }
