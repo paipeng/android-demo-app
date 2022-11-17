@@ -1,14 +1,18 @@
 package org.pytorch.helloworld;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import org.pytorch.IValue;
 import org.pytorch.MemoryFormat;
@@ -17,6 +21,7 @@ import org.pytorch.Tensor;
 import org.pytorch.torchvision.TensorImageUtils;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,12 +29,19 @@ import java.io.OutputStream;
 import java.nio.FloatBuffer;
 
 public class MainActivity extends AppCompatActivity {
+  private static final String TAG = MainActivity.class.getSimpleName();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        String[] permissionsStorage = {Manifest.permission.WRITE_EXTERNAL_STORAGE};
+        int requestExternalStorage = 1;
+        int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE);
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, permissionsStorage, requestExternalStorage);
+        }
         Bitmap bitmap = null;
         Module module = null;
         try {
@@ -76,8 +88,10 @@ public class MainActivity extends AppCompatActivity {
             Log.d("SCORE", "index: " + i + "  score: " + scores[i]);
         }
 
+        Log.d(TAG, "maxIndex: " + maxScoreIdx + " score: " + maxScore);
 
         String className = ChessNetClasses.IMAGENET_CLASSES[maxScoreIdx];
+        Log.d(TAG, "className: " + className);
 
         // showing className on UI
         TextView textView = findViewById(R.id.text);
@@ -155,19 +169,71 @@ public class MainActivity extends AppCompatActivity {
 
         final int pixelsCount = height * width;
         final int[] pixels = new int[pixelsCount];
+
+        final byte[] bytePixels = new byte[pixelsCount];
         bitmap.getPixels(pixels, 0, width, x, y, width, height);
         if (MemoryFormat.CONTIGUOUS == memoryFormat) {
             for (int i = 0; i < pixelsCount; i++) {
                 final int c = pixels[i];
+                bytePixels[i] = (byte)(c & 0xff);
                 float r = (c & 0xff) / 255.0f;
                 outBuffer.put(outBufferOffset + i, r);
             }
         } else {
             for (int i = 0; i < pixelsCount; i++) {
                 final int c = pixels[i];
+                bytePixels[i] = (byte)(c & 0xff);
                 float r = (c & 0xff) / 255.0f;
                 outBuffer.put(outBufferOffset + i, r);
             }
         }
+
+        Bitmap bitmap1 = rawByteArray2RGBABitmap2(bytePixels, bitmap.getWidth(), bitmap.getHeight());
+
+      saveImageWithSuffix(bitmap1, "_piece");
     }
+
+  public static Bitmap rawByteArray2RGBABitmap2(byte[] data, int width, int height) {
+      Log.d(TAG, "rawByteArray2RGBABitmap2: " + data.length + " size: " + width + "-" + height);
+    int frameSize = width * height;
+    int[] rgba = new int[frameSize];
+    for (int i = 0; i < height; i++)
+      for (int j = 0; j < width; j++) {
+        int p = (0xff & ((int) data[i * width + j]));
+        rgba[i * width + j] = 0xff000000 + (p << 16) + (p << 8) + p;
+      }
+    Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+    bmp.setPixels(rgba, 0, width, 0, 0, width, height);
+    return bmp;
+  }
+
+  public static String saveImageWithSuffix(Bitmap bmp, String suffix) {
+    if (bmp == null) {
+      return null;
+    }
+    File filepath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+    Log.d(TAG, "filepath: " + filepath);
+
+    File appDir = new File(filepath.getAbsolutePath()+"/CPCamera");
+    Log.d(TAG, "appDir: " + appDir);
+
+    if (!appDir.exists()) {
+      appDir.mkdir();
+    }
+
+    String fileName = System.currentTimeMillis() + "xxx_" + suffix+".jpg";
+    File file = new File(appDir, fileName);
+    try {
+      FileOutputStream fos = new FileOutputStream(file);
+      bmp.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+      fos.flush();
+      fos.close();
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    return Environment.getExternalStorageDirectory()+"/Boohee"+"/"+fileName;
+  }
 }
