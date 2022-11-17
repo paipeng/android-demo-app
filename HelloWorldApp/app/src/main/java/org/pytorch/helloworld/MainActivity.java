@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -47,7 +48,8 @@ public class MainActivity extends AppCompatActivity {
         try {
             // creating bitmap from packaged into app android asset 'image.jpg',
             // app/src/main/assets/image.jpg
-            bitmap = BitmapFactory.decodeStream(getAssets().open("board_2117_piece_3-2.bmp"));
+            bitmap = BitmapFactory.decodeStream(getAssets().open("board_2050_piece_1-0.bmp"));
+            bitmap = resizedBitmap(bitmap, 28, 28);
             // loading serialized torchscript module from packaged into app android asset model.pt,
             // app/src/model/assets/model.pt
             //module = LiteModuleLoader.load(assetFilePath(this, "mobile_chess_model.ptl"));
@@ -236,4 +238,32 @@ public class MainActivity extends AppCompatActivity {
 
     return Environment.getExternalStorageDirectory()+"/Boohee"+"/"+fileName;
   }
+
+
+    public static Bitmap resizedBitmap(Bitmap oldBt, int newWidth, int newHeight) {
+        if (oldBt == null || oldBt.isRecycled()) {
+            return null;
+        }
+        try {
+            // 获取这个图片的宽和高
+            int width = oldBt.getWidth();
+            int height = oldBt.getHeight();
+
+            // 计算缩放率，新尺寸除原始尺寸
+            float scaleWidth = ((float) newWidth) / width;
+            float scaleHeight = ((float) newHeight) / height;
+
+            // 创建操作图片用的matrix对象
+            Matrix matrix = new Matrix();
+
+            // 缩放图片动作
+            matrix.postScale(scaleWidth, scaleHeight);
+
+            // 创建新的图片
+            return Bitmap.createBitmap(oldBt, 0, 0, width, height, matrix, true);
+        } catch (Exception | Error exception) {
+            Log.e(TAG, "resizedBitmap " + exception.getMessage());
+        }
+        return null;
+    }
 }
