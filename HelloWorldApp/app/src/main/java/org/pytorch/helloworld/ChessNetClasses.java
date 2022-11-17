@@ -13,6 +13,6 @@ public class ChessNetClasses {
             "W_KNIGHT, White Knight",
             "W_PAWN, White Pawn",
             "W_QUEEN, White Queen",
-            "w_ROOK, White Rook"
+            "W_ROOK, White Rook"
     };
 }

@@ -73,7 +73,9 @@ public class MainActivity extends AppCompatActivity {
         maxScore = scores[i];
         maxScoreIdx = i;
       }
+      Log.d("SCORE", "index: " + i + "  score: " + scores[i]);
     }
+
 
     String className = ChessNetClasses.IMAGENET_CLASSES[maxScoreIdx];
 
